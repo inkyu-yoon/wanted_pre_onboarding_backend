@@ -3,6 +3,7 @@ package com.wanted.controller;
 import com.wanted.domain.user.dto.UserCreateRequest;
 import com.wanted.domain.user.dto.UserCreateResponse;
 import com.wanted.global.Response;
+import com.wanted.global.annotation.BindingCheck;
 import com.wanted.global.exception.BindingException;
 import com.wanted.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -21,11 +22,8 @@ public class UserApiController {
     private final UserService userService;
 
     @PostMapping
+    @BindingCheck
     public ResponseEntity<Response<UserCreateResponse>> create(@RequestBody @Validated UserCreateRequest requestDto, BindingResult br) {
-
-        if (br.hasErrors()) {
-            throw new BindingException(br.getFieldError().getDefaultMessage());
-        }
 
         UserCreateResponse response = userService.createUser(requestDto);
 
