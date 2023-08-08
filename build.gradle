@@ -33,6 +33,10 @@ dependencies {
     // 스프링 시큐리티
     implementation 'org.springframework.boot:spring-boot-starter-security'
     testImplementation 'org.springframework.security:spring-security-test'
+
+    // request dto 객체 유효성 검증
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
 }
 
 tasks.named('test') {
