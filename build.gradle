@@ -29,6 +29,17 @@ dependencies {
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // 스프링 시큐리티
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    testImplementation 'org.springframework.security:spring-security-test'
+
+    // request dto 객체 유효성 검증
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // aop 사용
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-aop', version: '3.1.2'
+    testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-aop', version: '3.1.2'
 }
 
 tasks.named('test') {
