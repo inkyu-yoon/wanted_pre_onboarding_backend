@@ -1,9 +1,12 @@
 package com.wanted.domain.user.dto;
 
 import com.wanted.domain.user.User;
+import com.wanted.global.constants.ValidationConstants;
 import jakarta.validation.constraints.Email;
 import lombok.*;
 import org.hibernate.validator.constraints.Length;
+
+import static com.wanted.global.constants.ValidationConstants.*;
 
 @Getter
 @Builder
@@ -12,10 +15,10 @@ import org.hibernate.validator.constraints.Length;
 @EqualsAndHashCode
 public class UserCreateRequest {
 
-    @Email(message = "올바른 이메일 형식이 아닙니다. '@' 를 포함시켜주세요.")
+    @Email(message = EMAIL_BINDING_ERROR_MESSAGE)
     private String email;
 
-    @Length(min = 8,message = "비밀번호는 최소 8자 이상입니다.")
+    @Length(min = PASSWORD_REQUIRED_LENGTH, message = PASSWORD_BINDING_ERROR_MESSAGE)
     private String password;
 
     public User toEntity(String encryptedPassword) {
