@@ -2,9 +2,10 @@ package com.wanted.controller;
 
 import com.wanted.domain.user.dto.UserCreateRequest;
 import com.wanted.domain.user.dto.UserCreateResponse;
+import com.wanted.domain.user.dto.UserLoginRequest;
+import com.wanted.domain.user.dto.UserLoginResponse;
 import com.wanted.global.Response;
 import com.wanted.global.annotation.BindingCheck;
-import com.wanted.global.exception.BindingException;
 import com.wanted.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -29,5 +30,15 @@ public class UserApiController {
 
         return ResponseEntity.ok(Response.success(response));
     }
+
+    @PostMapping("/login")
+    @BindingCheck
+    public ResponseEntity<Response<UserLoginResponse>> login(@RequestBody @Validated UserLoginRequest requestDto, BindingResult br) {
+
+        UserLoginResponse response = userService.loginUser(requestDto);
+
+        return ResponseEntity.ok(Response.success(response));
+    }
+
 }
 
