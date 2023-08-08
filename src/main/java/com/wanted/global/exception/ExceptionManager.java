@@ -18,5 +18,10 @@ public class ExceptionManager {
 
     }
 
+    @ExceptionHandler(BindingException.class)
+    public ResponseEntity<?> bindingExceptionHandler(BindingException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Response.error(e.getMessage()));
+    }
 
 }
