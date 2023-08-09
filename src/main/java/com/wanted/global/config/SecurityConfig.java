@@ -1,5 +1,6 @@
 package com.wanted.global.config;
 
+import com.wanted.global.filter.CustomAuthenticationEntryPointHandler;
 import com.wanted.global.filter.ExceptionHandlerFilter;
 import com.wanted.global.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.POST, "api/v1/posts").authenticated()
                         .anyRequest().permitAll())
+                .exceptionHandling(handler -> handler.authenticationEntryPoint(new CustomAuthenticationEntryPointHandler()))
                 .addFilterBefore(new JwtAuthenticationFilter(secretKey), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new ExceptionHandlerFilter(), JwtAuthenticationFilter.class)
                 .build();
