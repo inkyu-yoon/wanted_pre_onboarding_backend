@@ -3,10 +3,10 @@ package com.wanted.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wanted.domain.user.dto.UserCreateRequest;
 import com.wanted.domain.user.dto.UserCreateResponse;
-import com.wanted.global.annotation.BindingCheck;
+import com.wanted.domain.user.dto.UserLoginRequest;
+import com.wanted.domain.user.dto.UserLoginResponse;
 import com.wanted.global.aop.BindingCheckAop;
 import com.wanted.global.config.SecurityConfig;
-import com.wanted.global.constants.ValidationConstants;
 import com.wanted.global.exception.AppException;
 import com.wanted.global.exception.ErrorCode;
 import com.wanted.service.UserService;
@@ -29,7 +29,9 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.util.stream.Stream;
 
-import static com.wanted.global.constants.ValidationConstants.*;
+import static com.wanted.global.constants.ValidationConstants.EMAIL_BINDING_ERROR_MESSAGE;
+import static com.wanted.global.constants.ValidationConstants.PASSWORD_BINDING_ERROR_MESSAGE;
+import static com.wanted.global.exception.ErrorCode.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -54,8 +56,11 @@ class UserApiControllerTest {
     String email = "email@email.com";
     String password = "password";
     Long userId = 1L;
+    String jwt = "jwt";
     UserCreateRequest userCreateRequest;
     UserCreateResponse userCreateResponse;
+    UserLoginRequest userLoginRequest;
+    UserLoginResponse userLoginResponse;
 
     @BeforeEach
     void setUp() {
@@ -73,6 +78,16 @@ class UserApiControllerTest {
         userCreateResponse = UserCreateResponse.builder()
                 .userId(userId)
                 .email(email)
+                .build();
+
+        userLoginRequest = UserLoginRequest.builder()
+                .email(email)
+                .password(password)
+                .build();
+
+        userLoginResponse = UserLoginResponse.builder()
+                .userId(userId)
+                .jwt(jwt)
                 .build();
     }
 
@@ -103,7 +118,7 @@ class UserApiControllerTest {
         @DisplayName("실패 - 이미 가입된 이메일로 요청 시")
         void createUser_fail_duplicateEmail() throws Exception {
             when(userService.createUser(userCreateRequest))
-                    .thenThrow(new AppException(ErrorCode.DUPLICATE_EMAIL));
+                    .thenThrow(new AppException(DUPLICATE_EMAIL));
 
             mockMvc.perform(post("/api/v1/users")
                             .contentType(APPLICATION_JSON)
@@ -129,6 +144,82 @@ class UserApiControllerTest {
         void createUser_fail_bindingError(String errorMessage, UserCreateRequest request) throws Exception {
 
             mockMvc.perform(post("/api/v1/users")
+                            .contentType(APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andDo(print())
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").exists())
+                    .andExpect(jsonPath("$.message").value("ERROR"))
+                    .andExpect(jsonPath("$.result").exists())
+                    .andExpect(jsonPath("$.result").value(errorMessage));
+
+        }
+
+
+    }
+
+    @Nested
+    @DisplayName("로그인 테스트")
+    class LoginUser {
+
+        @Test
+        @DisplayName("성공")
+        void loginUser_success() throws Exception {
+            given(userService.loginUser(userLoginRequest))
+                    .willReturn(userLoginResponse);
+
+            mockMvc.perform(post("/api/v1/users/login")
+                            .contentType(APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(userLoginRequest)))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").exists())
+                    .andExpect(jsonPath("$.message").value("SUCCESS"))
+                    .andExpect(jsonPath("$.result").exists())
+                    .andExpect(jsonPath("$.result.userId").value(userId))
+                    .andExpect(jsonPath("$.result.jwt").value(jwt));
+        }
+
+        private static Stream<Arguments> loginUserFailScenarios() {
+            return Stream.of(
+                    Arguments.of(USER_NOT_FOUND,404,"가입된 회원을 찾을 수 없습니다."),
+                    Arguments.of(WRONG_PASSWORD,401,"비밀번호가 일치하지 않습니다.")
+            );
+        }
+
+        @DisplayName("실패")
+        @ParameterizedTest
+        @MethodSource("loginUserFailScenarios")
+        void loginUser_fail_exception(ErrorCode errorCode, int responseStatus, String errorMessage) throws Exception {
+            when(userService.loginUser(userLoginRequest))
+                    .thenThrow(new AppException(errorCode));
+
+            mockMvc.perform(post("/api/v1/users/login")
+                            .contentType(APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(userLoginRequest)))
+                    .andDo(print())
+                    .andExpect(status().is(responseStatus))
+                    .andExpect(jsonPath("$.message").exists())
+                    .andExpect(jsonPath("$.message").value("ERROR"))
+                    .andExpect(jsonPath("$.result").exists())
+                    .andExpect(jsonPath("$.result").value(errorMessage));
+
+        }
+
+
+        private static Stream<Arguments> loginUserBindingFailScenarios() {
+            return Stream.of(
+                    Arguments.of(EMAIL_BINDING_ERROR_MESSAGE, UserLoginRequest.builder().email("email").password("12345678").build()),
+                    Arguments.of(PASSWORD_BINDING_ERROR_MESSAGE, UserLoginRequest.builder().email("email@email.com").password("1234567").build())
+            );
+        }
+
+        @DisplayName("Request Dto 유효성 검증 실패")
+        @ParameterizedTest
+        @MethodSource("loginUserBindingFailScenarios")
+        void loginUser_fail_bindingError(String errorMessage, UserLoginRequest request) throws Exception {
+
+            mockMvc.perform(post("/api/v1/users/login")
                             .contentType(APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andDo(print())
