@@ -1,8 +1,6 @@
 package com.wanted.controller;
 
-import com.wanted.domain.post.dto.PostCreateRequest;
-import com.wanted.domain.post.dto.PostCreateResponse;
-import com.wanted.domain.post.dto.PostGetResponse;
+import com.wanted.domain.post.dto.*;
 import com.wanted.global.Response;
 import com.wanted.service.PostService;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +37,14 @@ public class PostApiController {
     public ResponseEntity<Response<Page<PostGetResponse>>> getPage(Pageable pageable) {
 
         Page<PostGetResponse> response = postService.getPostPage(pageable);
+
+        return ResponseEntity.ok(Response.success(response));
+    }
+
+    @PutMapping("/{postId}")
+    public ResponseEntity<Response<PostUpdateResponse>> update(@RequestBody PostUpdateRequest requestDto, Authentication authentication, @PathVariable(name = "postId") Long postId) {
+
+        PostUpdateResponse response = postService.updatePost(requestDto, postId, authentication.getName());
 
         return ResponseEntity.ok(Response.success(response));
     }

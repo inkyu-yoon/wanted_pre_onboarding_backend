@@ -31,6 +31,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "api/v1/posts").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "api/v1/posts/**").authenticated()
                         .anyRequest().permitAll())
                 .exceptionHandling(handler -> handler.authenticationEntryPoint(new CustomAuthenticationEntryPointHandler()))
                 .addFilterBefore(new JwtAuthenticationFilter(secretKey), UsernamePasswordAuthenticationFilter.class)
