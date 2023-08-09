@@ -2,9 +2,7 @@ package com.wanted.service;
 
 import com.wanted.domain.post.Post;
 import com.wanted.domain.post.PostRepository;
-import com.wanted.domain.post.dto.PostCreateRequest;
-import com.wanted.domain.post.dto.PostCreateResponse;
-import com.wanted.domain.post.dto.PostGetResponse;
+import com.wanted.domain.post.dto.*;
 import com.wanted.domain.user.User;
 import com.wanted.domain.user.UserRepository;
 import com.wanted.domain.user.dto.UserCreateRequest;
@@ -32,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 
@@ -57,17 +56,30 @@ class PostServiceTest {
     String email = "email";
     Long postId = 1L;
     Long userId = 1L;
-    Pageable pageable = PageRequest.of(0,20);
+    Pageable pageable = PageRequest.of(0, 20);
 
 
     PostCreateRequest postCreateRequest;
+    PostUpdateRequest postUpdateRequest;
+    PostDeleteResponse postDeleteResponse;
 
     @BeforeEach
     void setUp() {
-       postCreateRequest = PostCreateRequest.builder()
-               .title(title)
-               .body(body)
-               .build();
+        postCreateRequest = PostCreateRequest.builder()
+                .title(title)
+                .body(body)
+                .build();
+
+        postUpdateRequest = PostUpdateRequest.builder()
+                .title(title)
+                .body(body)
+                .build();
+
+        postDeleteResponse = PostDeleteResponse.builder()
+                .postId(postId)
+                .title(title)
+                .body(body)
+                .build();
     }
 
     @Nested
@@ -95,7 +107,7 @@ class PostServiceTest {
 
 
             //when
-            PostCreateResponse response = postService.createPost(postCreateRequest,email);
+            PostCreateResponse response = postService.createPost(postCreateRequest, email);
 
             //then
             assertThat(response).isNotNull();
@@ -115,7 +127,7 @@ class PostServiceTest {
                     .willReturn(Optional.empty());
 
             //when
-            AppException appException = assertThrows(AppException.class, () -> postService.createPost(postCreateRequest,email));
+            AppException appException = assertThrows(AppException.class, () -> postService.createPost(postCreateRequest, email));
 
             //then
             assertThat(appException.getErrorCode()).isEqualTo(USER_NOT_FOUND);
@@ -200,6 +212,188 @@ class PostServiceTest {
             verify(postRepository, atLeastOnce()).findAll(pageable);
         }
 
+    }
+
+
+    @Nested
+    @DisplayName("게시글 수정 테스트")
+    class UpdatePost {
+
+        @Test
+        @DisplayName("성공")
+        void updatePost_success() {
+            //given
+            given(userRepository.findByEmail(email))
+                    .willReturn(Optional.of(mockUser));
+            given(postRepository.findById(postId))
+                    .willReturn(Optional.of(mockPost));
+            given(mockPost.checkUser(mockUser))
+                    .willReturn(true);
+            given(mockPost.getId())
+                    .willReturn(postId);
+            given(mockPost.getTitle())
+                    .willReturn(title);
+            given(mockPost.getBody())
+                    .willReturn(body);
+
+
+            //when
+            PostUpdateResponse response = postService.updatePost(postUpdateRequest, postId, email);
+
+            //then
+            assertThat(response).isNotNull();
+            assertThat(response.getPostId()).isEqualTo(postId);
+            assertThat(response.getTitle()).isEqualTo(title);
+            assertThat(response.getBody()).isEqualTo(body);
+            verify(userRepository, atLeastOnce()).findByEmail(email);
+            verify(postRepository, atLeastOnce()).findById(postId);
+        }
+
+        @Test
+        @DisplayName("실패 - 가입된 회원이 아닌 경우 예외 발생")
+        void updatePost_fail_userNotFound() {
+            //given
+            given(userRepository.findByEmail(email))
+                    .willReturn(Optional.empty());
+
+            //when
+            AppException appException = assertThrows(AppException.class, () -> postService.updatePost(postUpdateRequest, postId, email));
+
+            //then
+            assertThat(appException.getErrorCode()).isEqualTo(USER_NOT_FOUND);
+            verify(userRepository, atLeastOnce()).findByEmail(email);
+        }
+
+        @Test
+        @DisplayName("실패 - postId에 해당하는 게시글이 존재하지 않을 시 예외 발생")
+        void updatePost_fail_postNotFound() {
+            //given
+            given(userRepository.findByEmail(email))
+                    .willReturn(Optional.of(mockUser));
+            given(postRepository.findById(postId))
+                    .willReturn(Optional.empty());
+
+            //when
+            AppException appException = assertThrows(AppException.class, () -> postService.updatePost(postUpdateRequest, postId, email));
+
+            //then
+            assertThat(appException.getErrorCode()).isEqualTo(POST_NOT_FOUND);
+            verify(userRepository, atLeastOnce()).findByEmail(email);
+            verify(postRepository, atLeastOnce()).findById(postId);
+        }
+
+        @Test
+        @DisplayName("실패 - 수정 요청자와 작성자가 일치하지 않는 경우 예외 발생")
+        void updatePost_fail_userNotMatch() {
+            //given
+            given(userRepository.findByEmail(email))
+                    .willReturn(Optional.of(mockUser));
+            given(postRepository.findById(postId))
+                    .willReturn(Optional.of(mockPost));
+            given(mockPost.checkUser(mockUser))
+                    .willReturn(false);
+
+            //when
+            AppException appException = assertThrows(AppException.class, () -> postService.updatePost(postUpdateRequest, postId, email));
+
+            //then
+            assertThat(appException.getErrorCode()).isEqualTo(USER_NOT_MATCH);
+            verify(userRepository, atLeastOnce()).findByEmail(email);
+            verify(postRepository, atLeastOnce()).findById(postId);
+        }
+    }
+
+    @Nested
+    @DisplayName("게시글 삭제 테스트")
+    class DeletePost {
+
+        @Test
+        @DisplayName("성공")
+        void deletePost_success() {
+            //given
+            given(userRepository.findByEmail(email))
+                    .willReturn(Optional.of(mockUser));
+            given(postRepository.findById(postId))
+                    .willReturn(Optional.of(mockPost));
+            given(mockPost.checkUser(mockUser))
+                    .willReturn(true);
+            willDoNothing().given(postRepository)
+                    .delete(mockPost);
+            given(mockPost.getId())
+                    .willReturn(postId);
+            given(mockPost.getTitle())
+                    .willReturn(title);
+            given(mockPost.getBody())
+                    .willReturn(body);
+
+
+            //when
+            PostDeleteResponse response = postService.deletePost(postId, email);
+
+            //then
+            assertThat(response).isNotNull();
+            assertThat(response.getPostId()).isEqualTo(postId);
+            assertThat(response.getTitle()).isEqualTo(title);
+            assertThat(response.getBody()).isEqualTo(body);
+            verify(userRepository, atLeastOnce()).findByEmail(email);
+            verify(postRepository, atLeastOnce()).findById(postId);
+            verify(postRepository, atLeastOnce()).delete(mockPost);
+        }
+
+        @Test
+        @DisplayName("실패 - 가입된 회원이 아닌 경우 예외 발생")
+        void deletePost_fail_userNotFound() {
+            //given
+            given(userRepository.findByEmail(email))
+                    .willReturn(Optional.empty());
+
+            //when
+            AppException appException = assertThrows(AppException.class, () -> postService.deletePost(postId, email));
+
+            //then
+            assertThat(appException.getErrorCode()).isEqualTo(USER_NOT_FOUND);
+            verify(userRepository, atLeastOnce()).findByEmail(email);
+        }
+
+        @Test
+        @DisplayName("실패 - postId에 해당하는 게시글이 존재하지 않을 시 예외 발생")
+        void deletePost_fail_postNotFound() {
+            //given
+            given(userRepository.findByEmail(email))
+                    .willReturn(Optional.of(mockUser));
+            given(postRepository.findById(postId))
+                    .willReturn(Optional.empty());
+
+
+            //when
+            AppException appException = assertThrows(AppException.class, () -> postService.deletePost(postId, email));
+
+            //then
+            assertThat(appException.getErrorCode()).isEqualTo(POST_NOT_FOUND);
+            verify(userRepository, atLeastOnce()).findByEmail(email);
+            verify(postRepository, atLeastOnce()).findById(postId);
+        }
+
+        @Test
+        @DisplayName("실패 - 수정 요청자와 작성자가 일치하지 않는 경우 예외 발생")
+        void deletePost_fail_userNotMatch() {
+            //given
+            given(userRepository.findByEmail(email))
+                    .willReturn(Optional.of(mockUser));
+            given(postRepository.findById(postId))
+                    .willReturn(Optional.of(mockPost));
+            given(mockPost.checkUser(mockUser))
+                    .willReturn(false);
+
+            //when
+            AppException appException = assertThrows(AppException.class, () -> postService.deletePost(postId, email));
+
+            //then
+            assertThat(appException.getErrorCode()).isEqualTo(USER_NOT_MATCH);
+            verify(userRepository, atLeastOnce()).findByEmail(email);
+            verify(postRepository, atLeastOnce()).findById(postId);
+            verify(mockPost, atLeastOnce()).checkUser(mockUser);
+        }
     }
 
 

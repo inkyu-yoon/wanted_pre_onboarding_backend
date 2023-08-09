@@ -2,15 +2,14 @@ package com.wanted.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wanted.domain.post.dto.PostCreateRequest;
-import com.wanted.domain.post.dto.PostCreateResponse;
-import com.wanted.domain.post.dto.PostGetResponse;
+import com.wanted.domain.post.dto.*;
 import com.wanted.domain.user.dto.UserCreateRequest;
 import com.wanted.domain.user.dto.UserCreateResponse;
 import com.wanted.domain.user.dto.UserLoginRequest;
 import com.wanted.domain.user.dto.UserLoginResponse;
 import com.wanted.global.config.SecurityConfig;
 import com.wanted.global.exception.AppException;
+import com.wanted.global.exception.ErrorCode;
 import com.wanted.global.util.JwtUtil;
 import com.wanted.service.PostService;
 import com.wanted.service.UserService;
@@ -18,6 +17,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -33,13 +35,13 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import static com.wanted.global.exception.ErrorCode.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -69,7 +71,10 @@ class PostApiControllerTest {
     PostCreateRequest postCreateRequest;
     PostCreateResponse postCreateResponse;
     PostGetResponse postGetResponse;
-    Pageable pageable = PageRequest.of(0,20);
+    PostUpdateRequest postUpdateRequest;
+    PostUpdateResponse postUpdateResponse;
+    PostDeleteResponse postDeleteResponse;
+    Pageable pageable = PageRequest.of(0, 20);
 
 
     @BeforeEach
@@ -99,6 +104,23 @@ class PostApiControllerTest {
                 .body(body)
                 .build();
 
+        postUpdateRequest = PostUpdateRequest.builder()
+                .title(title)
+                .body(body)
+                .build();
+
+        postUpdateResponse = PostUpdateResponse.builder()
+                .postId(postId)
+                .title(title)
+                .body(body)
+                .build();
+
+        postDeleteResponse = PostDeleteResponse.builder()
+                .postId(postId)
+                .title(title)
+                .body(body)
+                .build();
+
         token = JwtUtil.createToken(email, secretKey);
 
     }
@@ -111,7 +133,7 @@ class PostApiControllerTest {
         @DisplayName("성공")
         void createPost_success() throws Exception {
 
-            given(postService.createPost(postCreateRequest,email))
+            given(postService.createPost(postCreateRequest, email))
                     .willReturn(postCreateResponse);
 
             mockMvc.perform(post("/api/v1/posts")
@@ -133,7 +155,7 @@ class PostApiControllerTest {
         @DisplayName("실패 - 가입된 회원이 아닌 경우")
         void createPost_error_userNotFound() throws Exception {
 
-            when(postService.createPost(postCreateRequest,email))
+            when(postService.createPost(postCreateRequest, email))
                     .thenThrow(new AppException(USER_NOT_FOUND));
 
             mockMvc.perform(post("/api/v1/posts")
@@ -221,5 +243,140 @@ class PostApiControllerTest {
                     .andExpect(jsonPath("$.result.content[0].body").value(body));
         }
 
+    }
+
+
+    @Nested
+    @DisplayName("게시글 수정 테스트")
+    class UpdatePost {
+
+        @Test
+        @DisplayName("성공")
+        void updatePost_success() throws Exception {
+
+            given(postService.updatePost(postUpdateRequest, postId, email))
+                    .willReturn(postUpdateResponse);
+
+            mockMvc.perform(put("/api/v1/posts/" + postId)
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                            .contentType(APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(postUpdateRequest)))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").exists())
+                    .andExpect(jsonPath("$.message").value("SUCCESS"))
+                    .andExpect(jsonPath("$.result").exists())
+                    .andExpect(jsonPath("$.result.postId").value(postId))
+                    .andExpect(jsonPath("$.result.title").value(title))
+                    .andExpect(jsonPath("$.result.body").value(body));
+        }
+
+        private static Stream<Arguments> updatePostFailScenarios() {
+            return Stream.of(
+                    Arguments.of(USER_NOT_FOUND, 404, "가입된 회원을 찾을 수 없습니다."),
+                    Arguments.of(POST_NOT_FOUND, 404, "게시글을 찾을 수 없습니다."),
+                    Arguments.of(USER_NOT_MATCH, 401, "작성자 본인만 요청할 수 있습니다.")
+            );
+        }
+
+        @DisplayName("실패")
+        @ParameterizedTest
+        @MethodSource("updatePostFailScenarios")
+        void updatePost_fail_exception(ErrorCode errorCode, int responseStatus, String errorMessage) throws Exception {
+            when(postService.updatePost(postUpdateRequest, postId, email))
+                    .thenThrow(new AppException(errorCode));
+
+            mockMvc.perform(put("/api/v1/posts/" + postId)
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                            .contentType(APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(postUpdateRequest)))
+                    .andDo(print())
+                    .andExpect(status().is(responseStatus))
+                    .andExpect(jsonPath("$.message").exists())
+                    .andExpect(jsonPath("$.message").value("ERROR"))
+                    .andExpect(jsonPath("$.result").exists())
+                    .andExpect(jsonPath("$.result").value(errorMessage));
+
+        }
+
+
+        @Test
+        @DisplayName("실패 - jwt 없이 요청 시")
+        void updatePost_error_tokenNotFound() throws Exception {
+
+            mockMvc.perform(put("/api/v1/posts/" + postId)
+                            .contentType(APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(postCreateRequest)))
+                    .andDo(print())
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").exists())
+                    .andExpect(jsonPath("$.message").value("ERROR"))
+                    .andExpect(jsonPath("$.result").exists())
+                    .andExpect(jsonPath("$.result").value("유효한 토큰이 아닙니다."));
+        }
+    }
+
+    @Nested
+    @DisplayName("게시글 삭제 테스트")
+    class DeletePost {
+
+        @Test
+        @DisplayName("성공")
+        void deletePost_success() throws Exception {
+
+            given(postService.deletePost(postId, email))
+                    .willReturn(postDeleteResponse);
+
+            mockMvc.perform(delete("/api/v1/posts/" + postId)
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").exists())
+                    .andExpect(jsonPath("$.message").value("SUCCESS"))
+                    .andExpect(jsonPath("$.result").exists())
+                    .andExpect(jsonPath("$.result.postId").value(postId))
+                    .andExpect(jsonPath("$.result.title").value(title))
+                    .andExpect(jsonPath("$.result.body").value(body));
+        }
+
+        private static Stream<Arguments> deletePostFailScenarios() {
+            return Stream.of(
+                    Arguments.of(USER_NOT_FOUND, 404, "가입된 회원을 찾을 수 없습니다."),
+                    Arguments.of(POST_NOT_FOUND, 404, "게시글을 찾을 수 없습니다."),
+                    Arguments.of(USER_NOT_MATCH, 401, "작성자 본인만 요청할 수 있습니다.")
+            );
+        }
+
+        @DisplayName("실패")
+        @ParameterizedTest
+        @MethodSource("deletePostFailScenarios")
+        void deletePost_fail_exception(ErrorCode errorCode, int responseStatus, String errorMessage) throws Exception {
+            when(postService.deletePost(postId, email))
+                    .thenThrow(new AppException(errorCode));
+
+            mockMvc.perform(delete("/api/v1/posts/" + postId)
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                    .andDo(print())
+                    .andExpect(status().is(responseStatus))
+                    .andExpect(jsonPath("$.message").exists())
+                    .andExpect(jsonPath("$.message").value("ERROR"))
+                    .andExpect(jsonPath("$.result").exists())
+                    .andExpect(jsonPath("$.result").value(errorMessage));
+
+        }
+
+
+        @Test
+        @DisplayName("실패 - jwt 없이 요청 시")
+        void deletePost_error_tokenNotFound() throws Exception {
+
+            mockMvc.perform(delete("/api/v1/posts/" + postId))
+                    .andDo(print())
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").exists())
+                    .andExpect(jsonPath("$.message").value("ERROR"))
+                    .andExpect(jsonPath("$.result").exists())
+                    .andExpect(jsonPath("$.result").value("유효한 토큰이 아닙니다."));
+        }
     }
 }

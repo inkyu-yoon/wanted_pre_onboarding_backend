@@ -30,4 +30,13 @@ public class Post {
         this.title = title;
         this.body = body;
     }
+
+    public boolean checkUser(User user) {
+        return this.user.getEmail().equals(user.getEmail());
+    }
+
+    public void update(String title, String body) {
+        this.title = title;
+        this.body = body;
+    }
 }
