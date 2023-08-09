@@ -6,6 +6,7 @@ import com.wanted.domain.user.dto.UserLoginRequest;
 import com.wanted.domain.user.dto.UserLoginResponse;
 import com.wanted.global.Response;
 import com.wanted.global.annotation.BindingCheck;
+import com.wanted.global.specification.UserApiSpecification;
 import com.wanted.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
-public class UserApiController {
+public class UserApiController implements UserApiSpecification {
     private final UserService userService;
 
     @PostMapping

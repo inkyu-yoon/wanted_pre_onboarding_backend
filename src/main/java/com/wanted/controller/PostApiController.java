@@ -2,6 +2,7 @@ package com.wanted.controller;
 
 import com.wanted.domain.post.dto.*;
 import com.wanted.global.Response;
+import com.wanted.global.specification.PostApiSpecification;
 import com.wanted.service.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/posts")
-public class PostApiController {
+public class PostApiController implements PostApiSpecification {
 
     private final PostService postService;
 

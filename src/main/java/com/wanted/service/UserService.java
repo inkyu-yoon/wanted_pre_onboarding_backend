@@ -51,6 +51,9 @@ public class UserService {
         }
     }
 
+    /**
+     * 로그인
+     */
     public UserLoginResponse loginUser(UserLoginRequest request) {
 
         User foundUser = validateAndFindUserByEmail(request.getEmail());
@@ -60,10 +63,17 @@ public class UserService {
         return UserLoginResponse.from(foundUser, JwtUtil.createToken(foundUser.getEmail(), secretKey));
     }
 
+    /**
+     * 해당 Email로 가입된 회원이 있는지 검증
+     */
     private User validateAndFindUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     }
+
+    /**
+     * 로그인 요청 시, 전달한 비밀번호가 DB에 저장되어있는 비밀번호와 일치하는지 확인
+     */
 
     private void validatePassword(UserLoginRequest request, User foundUser) {
         if (!encryption.matches(request.getPassword(), foundUser.getPassword())) {
