@@ -1,18 +1,33 @@
 # 원티드 프리온보딩 백엔드 인턴십 사전 과제
 
+💡 AWS EC2 배포 : http://ec2-3-38-133-211.ap-northeast-2.compute.amazonaws.com:8081  
+💡 Swagger : [http://ec2-3-38-133-211.ap-northeast-2.compute.amazonaws.com:8081/swagger-ui/index.html](http://ec2-3-38-133-211.ap-northeast-2.compute.amazonaws.com:8081/swagger-ui/index.html)
+
+<div align = "center">
+        <img src = "https://github.com/inkyu-yoon/wanted_pre_onboarding_backend/assets/110657129/d529de98-e4fa-472b-9a5d-4650cbb9ce0c"height="250" />
+</div>
+
+### 개발 환경 
+
+Java 17 · Spring Data JPA · MySQL 8.0 · Spring Security · Docker · AWS EC2 · Gradle · IntelliJ
+
+<br>
+
 ## 과제 제출 필수 사항
 
-### 지원자의 성명
+### 📌 지원자의 성명
 
 윤인규
 
-[Controller & Service 테스트 코드 작성](https://wanted-yooninkyu-test-code.netlify.app/)
+🎈 [Controller & Service 테스트 코드 작성 리포트](https://wanted-yooninkyu-test-code.netlify.app/)
 
 ![img.png](img.png)
 
 Jacoco 라이브러리를 통해 Controller 와 Service 테스트 코드 커버리지를 측정하여 100% 달성하였습니다.
 
-### 애플리케이션의 실행 방법
+<br>
+
+### 📌 애플리케이션의 실행 방법
 
 1. [application.yml](https://github.com/inkyu-yoon/wanted_pre_onboarding_backend/blob/main/src/main/resources/application.yml) 에 mysql username과 password를 입력
 
@@ -22,17 +37,25 @@ Jacoco 라이브러리를 통해 Controller 와 Service 테스트 코드 커버�
 
 4. git clone 혹은 zip 파일로 받아 intellij 환경에서 실행
 
-### 데이터 베이스 테이블 구조(ERD)
+<br>
+
+### 📌 데이터 베이스 테이블 구조(ERD)
 
 ![erd](wanted_erd.png)
 
-### 구현한 API의 동작을 촬영한 데모 영상 링크
+<br>
 
-[시연 영상 유투브 링크](https://www.youtube.com/watch?v=OE6it1xphcI)
+### 📌 구현한 API의 동작을 촬영한 데모 영상 링크
 
-### 구현 방법 및 이유에 대한 간략한 설명
+[시연 영상 youtube 링크](https://www.youtube.com/watch?v=OE6it1xphcI)
 
-#### 1. Request Dto 유효성 검증
+<br>
+
+### 📌 구현 방법 및 이유에 대한 간략한 설명
+
+<br>
+
+#### 1️⃣ Request Dto 유효성 검증
 
 회원가입과 로그인 시, `email` 의 경우 `@` 문자가 꼭 포함되어야 하고 비밀번호는 반드시 8자 이상이어야 합니다.
 
@@ -80,7 +103,9 @@ public ResponseEntity<Response<UserCreateResponse>> create(@RequestBody @Validat
 }
 ```
 
-#### 2. 비밀번호 암호화
+<br>
+
+#### 2️⃣ 비밀번호 암호화
 
 요구사항에 따라, 회원 가입 시 요청한 비밀번호를 암호화 하여 DB에 저장해야합니다.
 
@@ -96,7 +121,9 @@ Spring-security 라이브러리에서 제공하는 `BcryptPasswordEncoder` 클�
 
 `BcryptPasswordEncoder` 빈을 주입받아 `encode()` 메서드로 암호화를 하면 되고 `matches(비밀번호,암호화 된 비밀번호)` 로 비밀번호를 검증하면 됩니다.
 
-#### 3. 예외 처리
+<br>
+
+#### 3️⃣ 예외 처리
 
 `AppException` 이라는 커스텀 예외를 정의한 뒤, 예외 처리시 `AppException` 을 throw 하도록 구현하였습니다.
 
@@ -110,9 +137,9 @@ Spring-security 라이브러리에서 제공하는 `BcryptPasswordEncoder` 클�
 [ErrorCode.java](https://github.com/inkyu-yoon/wanted_pre_onboarding_backend/blob/main/src/main/java/com/wanted/global/exception/ErrorCode.java)
 [ExceptionManager.java](https://github.com/inkyu-yoon/wanted_pre_onboarding_backend/blob/main/src/main/java/com/wanted/global/exception/ExceptionManager.java)
 
+<br>
 
-
-#### 4. 인증과 인가
+#### 4️⃣ 인증과 인가
 
 [JwtAuthenticationFilter ](https://github.com/inkyu-yoon/wanted_pre_onboarding_backend/blob/main/src/main/java/com/wanted/global/filter/JwtAuthenticationFilter.java) 를 정의하여 사용자가 전달하는 jwt의 유효성을 판단합니다.
 
@@ -134,9 +161,12 @@ return ResponseEntity.ok(Response.success(response));
 
 이 정보로, Service 코드에서 게시글 작성자와 삭제 요청자가 일치하는지 확인할 수 있게 됩니다.
 
+<br>
 
 ### API 명세(request/response 포함)
 
+
+<br>
 
 #### 1. 회원가입 (POST) : `api/v1/users`
 
