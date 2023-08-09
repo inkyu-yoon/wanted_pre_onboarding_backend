@@ -49,5 +49,13 @@ public class PostApiController {
         return ResponseEntity.ok(Response.success(response));
     }
 
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<Response<PostDeleteResponse>> delete(Authentication authentication, @PathVariable(name = "postId") Long postId) {
+
+        PostDeleteResponse response = postService.deletePost(postId, authentication.getName());
+
+        return ResponseEntity.ok(Response.success(response));
+    }
+
 
 }

@@ -59,6 +59,20 @@ public class PostService {
         return PostUpdateResponse.from(foundPost);
     }
 
+    public PostDeleteResponse deletePost(Long postId, String email) {
+        User foundUser = validateAndFindUserByEmail(email);
+
+        Post foundPost = validateAndFindPostById(postId);
+
+        if (!foundPost.checkUser(foundUser)) {
+            throw new AppException(ErrorCode.USER_NOT_MATCH);
+        }
+
+        postRepository.delete(foundPost);
+
+        return PostDeleteResponse.from(foundPost);
+    }
+
     private User validateAndFindUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -68,4 +82,6 @@ public class PostService {
         return postRepository.findById(postId)
                 .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
     }
+
+
 }
