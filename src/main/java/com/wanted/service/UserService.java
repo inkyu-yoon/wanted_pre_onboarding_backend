@@ -4,9 +4,13 @@ import com.wanted.domain.user.User;
 import com.wanted.domain.user.UserRepository;
 import com.wanted.domain.user.dto.UserCreateRequest;
 import com.wanted.domain.user.dto.UserCreateResponse;
+import com.wanted.domain.user.dto.UserLoginRequest;
+import com.wanted.domain.user.dto.UserLoginResponse;
 import com.wanted.global.exception.AppException;
 import com.wanted.global.exception.ErrorCode;
+import com.wanted.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional
 public class UserService {
+
+    @Value("${jwt.secret}")
+    private String secretKey;
 
     private final UserRepository userRepository;
 
@@ -41,6 +48,26 @@ public class UserService {
     private void checkDuplicateEmail(String email) {
         if (userRepository.existsByEmail(email)) {
             throw new AppException(ErrorCode.DUPLICATE_EMAIL);
+        }
+    }
+
+    public UserLoginResponse loginUser(UserLoginRequest request) {
+
+        User foundUser = validateAndFindUserByEmail(request.getEmail());
+
+        validatePassword(request, foundUser);
+
+        return UserLoginResponse.from(foundUser, JwtUtil.createToken(foundUser.getEmail(), secretKey));
+    }
+
+    private User validateAndFindUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    private void validatePassword(UserLoginRequest request, User foundUser) {
+        if (!encryption.matches(request.getPassword(), foundUser.getPassword())) {
+            throw new AppException(ErrorCode.WRONG_PASSWORD);
         }
     }
 
