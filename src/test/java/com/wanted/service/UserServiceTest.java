@@ -96,7 +96,7 @@ class UserServiceTest {
         }
 
         @Test
-        @DisplayName("사용자 명이 이미 존재하는 경우, 사용자 등록 시 중복 예외가 발생")
+        @DisplayName("실패 - 사용자 명이 이미 존재하는 경우, 사용자 등록 시 중복 예외가 발생")
         void createUser_fail() {
             //given
             given(userRepository.existsByEmail(email))
@@ -116,7 +116,7 @@ class UserServiceTest {
     class LoginUser {
 
         @Test
-        @DisplayName("회원 로그인 성공 테스트")
+        @DisplayName("성공")
         public void loginUser_success() {
             MockedStatic<JwtUtil> jwtUtil = mockStatic(JwtUtil.class);
 
@@ -145,7 +145,7 @@ class UserServiceTest {
         }
 
         @Test
-        @DisplayName("가입되지 않은 회원인 경우 예외 발생")
+        @DisplayName("실패 - 가입되지 않은 회원인 경우 예외 발생")
         public void loginUser_error_userNotFound() {
             when(userRepository.findByEmail(userLoginRequest.getEmail()))
                     .thenReturn(Optional.empty());
@@ -159,7 +159,7 @@ class UserServiceTest {
         }
 
         @Test
-        @DisplayName("비밀번호가 일치하지 않는 경우 예외 발생")
+        @DisplayName("실패 - 비밀번호가 일치하지 않는 경우 예외 발생")
         public void loginUser_error_wrongPassword() {
             given(userRepository.findByEmail(userLoginRequest.getEmail()))
                     .willReturn(Optional.of(mockUser));
